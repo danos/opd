@@ -1,0 +1,90 @@
+# Copyright (c) 2018-2019 AT&T Intellectual Property.
+# All Rights Reserved.
+# Copyright (c) 2013-2017 by Brocade Communications Systems, Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+
+source /lib/opc/opc-args-encoder
+
+_vyatta_op_init ()
+{
+    local bashopts=""
+    # empty and first word or default line completion
+    complete -E -F _vyatta_op_expand
+    # bash >= 5.0
+    complete -I -F _vyatta_op_default_expand &>/dev/null
+    # fallback to vyatta-bash
+    if [ $? -ne 0 ]; then
+        complete -D -F _vyatta_op_default_expand -o nofirstword &>/dev/null
+        # fallback to bash << 5.0
+        if [ $? -ne 0 ]; then
+            complete -D -F _vyatta_op_default_expand
+        fi
+    fi
+
+    # create the top level aliases for the unambiguous portions of the commands
+    # this is the only place we need an entire enumerated list of the subcommands
+    for cmd in $( /opt/vyatta/bin/opc -op children '' ); do
+      for pos in $(seq 1 ${#cmd}); do
+        case ${cmd:0:$pos} in
+          for|do|done|if|fi|case|while|tr )
+            continue ;;
+          *) ;;
+        esac
+        complete -F _vyatta_op_expand ${cmd:0:$pos}
+        eval alias ${cmd:0:$pos}=\'_vyatta_op_run ${cmd:0:$pos}\'
+      done
+    done
+
+    shopt -s histverify
+}
+
+_vyatta_op_encode_args() {
+    opc_encode_args "$@"
+}
+
+_vyatta_op_get_node_def_field ()
+{
+    OPC_FIELD=$2 OPC_ARGS=$(_vyatta_op_encode_args $1) /opt/vyatta/bin/opc -op field-from-env
+}
+
+_vyatta_op_run_local ()
+{
+    eval "$(OPC_FIELD=run OPC_ARGS=$(_vyatta_op_encode_args $@) /opt/vyatta/bin/opc -op field-from-env)"
+}
+
+_vyatta_op_run ()
+{
+    local -i estat
+    local tpath=$vyatta_op_templates
+    local restore_shopts=$( shopt -p extglob nullglob | tr \\n \; )
+    shopt -s extglob nullglob
+
+    args=($(OPC_ARGS=$(_vyatta_op_encode_args "$@") /opt/vyatta/bin/opc -op expand-from-env 2>/dev/null))
+
+    _vyatta_op_last_comp=${_vyatta_op_last_comp_init}
+    false; estat=$?
+
+    i=1
+    local ret=0
+    local cmd_regex="^(LESSOPEN=|less|pager|tail|/opt/vyatta/bin/vyatta-tshark-interface-port.pl).*"
+    eval $restore_shopts
+    if [[ -t 1 &&  "${args[0]}" == "show" && ! $run_cmd =~ $cmd_regex ]] ; then
+      OPC_ARGS=$(_vyatta_op_encode_args "$@") /opt/vyatta/bin/opc -op run-from-env | ${VYATTA_PAGER:-cat}
+      ret=${PIPESTATUS[0]}
+    else
+      if [[ $(OPC_FIELD=local OPC_ARGS=$(_vyatta_op_encode_args "$@") /opt/vyatta/bin/opc -op field-from-env 2>/dev/null) == "true" ]]; then
+          _vyatta_op_run_local "${args[@]}" #pass expanded args for eval
+	  ret=$?
+      else
+          OPC_ARGS=$(_vyatta_op_encode_args "$@") /opt/vyatta/bin/opc -op run-from-env
+          ret=$?
+      fi
+    fi
+    return $ret
+}
+
+###  Local Variables:
+###  mode: shell-script
+###  End:

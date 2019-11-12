@@ -1,0 +1,382 @@
+module vyatta-opd-extensions-v1 {
+	namespace "urn:vyatta.com:mgmt:vyatta-opd-extensions:1";
+	prefix vyatta-opd-extensions-v1;
+
+	organization "AT&T Inc.";
+	contact
+	    "AT&T
+	     Postal: 208 S. Akard Street
+		     Dallas, TX 75202
+	     Web: www.att.com";
+
+	description
+		'Copyright (c) 2017-2019, AT&T Intellectual Proprty.
+		All rights reserved.
+		Copyright (c) 2017 by Brocade Communications Systems, Inc.
+		All rights reserved.
+
+		Redistribution and use in source and binary forms, with or without
+		modification, are permitted provided that the following conditions
+		are met:
+
+		1. Redistributions of source code must retain the above copyright
+		   notice, this list of conditions and the following disclaimer.
+		2. Redistributions in binary form must reproduce the above
+		   copyright notice, this list of conditions and the following
+		   disclaimer in the documentation and/or other materials provided
+		   with the distribution.
+		3. Neither the name of the copyright holder nor the names of its
+		   contributors may be used to endorse or promote products derived
+		   from this software without specific prior written permission.
+
+		THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+		"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+		LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+		FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+		COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+		INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+		BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+		LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+		CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+		LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+		ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+		POSSIBILITY OF SUCH DAMAGE.
+
+		SPDX-License-Identifier: BSD-3-Clause
+
+		Opd extensions to support yang based operational
+		CLI definitions
+
+		Example definitions for a simple ping command:
+
+			ping <hostname-address> [count <num>] [size <num>]
+
+
+		opd:option ping {
+			opd:help "Send ICMP echo requests";
+			type string {
+				opd:help "Hostname or IP address";
+			}
+
+			opd:repeatable true;
+			opd:inherit {
+				opd:on-enter "${vyatta_bindir}/ping ${@:2}";
+				opd:privileged true;
+			}
+
+			uses ping-options
+		}
+
+		grouping ping-options {
+			opd:option count {
+				opd:help "Number of requests to send";
+				type uint16;
+			}
+			opd:option size {
+				opd:help "Number of bytes to send";
+				type uint16 {
+					range 1..max;
+				}
+			}
+		}
+		';
+
+	revision 2019-06-03 {
+		description "Add local, pass-opc-args, and secret extensions";
+	}
+
+	revision 2017-10-04 {
+		description "Add pattern-help extension";
+	}
+
+	revision 2017-05-12 {
+		description "First revision";
+	}
+
+	extension command {
+		argument text;
+
+		description
+			"'command' is used to define a CLI keyword.
+			The argument is a string which defines the keyword
+
+			+------------------+-------------+
+			|   substatement   | cardinality |
+			+------------------+-------------+
+			| opd:allowed      | 0..1        |
+			| opd:argument     | 0..1        |
+			| opd:command      | 0..n        |
+			| description      | 0..1        |
+			| opd:help         | 0..1        |
+			| if-feature       | 0..n        |
+			| opd:inherit      | 0..1        |
+			| opd:local        | 0..1        |
+			| opd:on-enter     | 0..1        |
+			| opd:option       | 0..n        |
+			| opd:pass-opc-args| 0..1        |
+			| opd:privileged   | 0..1        |
+			| reference        | 0..1        |
+			| opd:repeatable   | 0..1        |
+			| opd:secret       | 0..1        |
+			| status           | 0..1        |
+			| type             | 0..1        |
+			| uses             | 0..n        |
+			+------------------+-------------+
+
+			The following should be considered an
+			additional entry in the table of RFC 6020; Sec 7.1.1;
+
+			+---------------+---------+-------------+
+			| substatement	| section | cardinality |
+			+---------------+---------+-------------+
+			| opd:command   |         | 0..n        |
+			+---------------+---------+-------------+
+			";
+	}
+
+	extension option {
+		argument text;
+
+		description
+			"'option' is used to define a CLI keyword, followed
+			by a value. The argument is a string which defines the
+			keyword. The value is defined using standard YANG
+			type statements.
+
+			+------------------+-------------+
+			|   substatement   | cardinality |
+			+------------------+-------------+
+			| opd:allowed      | 0..1        |
+			| opd:argument     | 0..1        |
+			| opd:command      | 0..n        |
+			| description      | 0..1        |
+			| opd:help         | 0..1        |
+			| if-feature       | 0..n        |
+			| opd:inherit      | 0..1        |
+			| opd:local        | 0..1        |
+			| opd:on-enter     | 0..1        |
+			| opd:option       | 0..n        |
+			| opd:pass-opc-args| 0..1        |
+			| opd:privileged   | 0..1        |
+			| reference        | 0..1        |
+			| opd:repeatable   | 0..1        |
+			| opd:secret       | 0..1        |
+			| status           | 0..1        |
+			| type             | 0..1        |
+			| units            | 0..1        |
+			| uses             | 0..n        |
+			+------------------+-------------+
+
+			The following should be considered an
+			additional entry in the table of RFC 6020; Sec 7.1.1;
+
+			+---------------+---------+-------------+
+			| substatement	| section | cardinality |
+			+---------------+---------+-------------+
+			| opd:option    |         | 0..n        |
+			+---------------+---------+-------------+
+			";
+	}
+
+	extension argument {
+		argument text;
+
+		description
+			"'argument' is used to define a point in the CLI
+			that will accept a value, with no accompanying
+			keyword. The value is defined using standard YANG
+			type statements. Its argument is a string which names
+			the argument node, which can be used to reference it in
+			an augment statement. Nodes are only permitted to have
+			one 'argument' child node.
+
+			+------------------+-------------+
+			|   substatement   | cardinality |
+			+------------------+-------------+
+			| opd:allowed      | 0..1        |
+			| opd:argument     | 0..1        |
+			| opd:command      | 0..n        |
+			| description      | 0..1        |
+			| opd:help         | 0..1        |
+			| if-feature       | 0..n        |
+			| opd:inherit      | 0..1        |
+			| opd:local        | 0..1        |
+			| opd:on-enter     | 0..1        |
+			| opd:option       | 0..n        |
+			| opd:pass-opc-args| 0..1        |
+			| opd:privileged   | 0..1        |
+			| status           | 0..1        |
+			| opd:repeatable   | 0..1        |
+			| reference        | 0..1        |
+			| opd:secret       | 0..1        |
+			| type             | 0..1        |
+			| units            | 0..1        |
+			| uses             | 0..n        |
+			+------------------+-------------+
+			";
+	}
+
+	extension on-enter {
+		argument text;
+
+		description
+			'Takes as an argument a script which will be
+			executed if its parent node is the terminating node
+			on a CLI command. If present on a node, the node can
+			be used as a terminating node for a CLI command.
+
+			The default value is "", implying that the node is
+			not a terminating node.
+
+			on-enter ""; can be used to ignore any inherited
+			on-enter statement and mark a node as a
+			non-terminating node.';
+	}
+
+	extension augment {
+		argument text;
+
+		description
+			"Similar to the standard YANG augment statement, but
+			augments only 'command', 'option' and 'argument' nodes.
+			Its argument is a string which identifies the node
+			to be augmented.
+
+			+---------------+-------------+
+			| substatement	| cardinality |
+			+---------------+-------------+
+			| opd:argument  | 0..1        |
+			| opd:command   | 0..n        |
+			| description   | 0..1        |
+			| if-feature    | 0..n        |
+			| opd:option    | 0..n        |
+			| status        | 0..1        |
+			| reference     | 0..1        |
+			| uses          | 0..n        |
+			+---------------+-------------+
+
+			The following should be considered an
+			additional entry in the table of RFC 6020; Sec 7.1.1;
+
+			+---------------+---------+-------------+
+			| substatement	| section | cardinality |
+			+---------------+---------+-------------+
+			| opd:augment   |         | 0..n        |
+			+---------------+---------+-------------+
+			";
+	}
+
+	extension inherit {
+		argument text;
+
+		description
+			"'inherit' specifies a set of statements which will be
+			inherited by the node on which it is specified as well
+			as all descendant 'argument', 'command' and 'option'
+			nodes, reducing the amount of duplication of commonly
+			used sub-statements. 'on-enter', 'pass-opc-args', and
+			'privileged' statements can be inherited.
+
+			Its argument is a text string which is a description or
+			comment about the inherited statements.
+
+			+------------------+-------------+
+			|   substatement   | cardinality |
+			+------------------+-------------+
+			| opd:on-enter     | 0..1        |
+			| opd:pass-opc-args| 0..1        |
+			| opd:privileged   | 0..1        |
+			+------------------+-------------+
+			";
+	}
+
+	extension repeatable {
+		argument text;
+
+		description
+			"'repeatable' takes as an argument the values 'true'
+			or 'false'. When 'true', any descendant nodes which have
+			no children themselves, will have this branch as
+			children, overriding 'repeatable' statements defined
+			on any parent nodes.
+			When 'false', any parent 'repeatable' definitions will
+			be ignored for this node and its children";
+	}
+
+	extension help {
+		argument text;
+
+		description
+			"The 'help' statement defines help text that will
+			be displayed on the CLI in response to a tab completion.
+			
+			Any type statement with no explicit help statement will
+			inherit the help of its parent 'argument' or
+			'option' node.";
+	}
+
+	extension allowed {
+		argument text;
+
+		description
+			"Specifies a script which returns a list of
+			possible completions for an option or argument node.
+			These will be presented as tab completion options on
+			the CLI";
+	}
+
+	extension privileged {
+		argument text;
+
+		description
+			"Takes as an argument the values 'true' or 'false'.
+			Any node marked as 'true', will have its on-enter
+			script run in privileged mode (as root)";
+	}
+
+	extension pattern-help {
+		argument text;
+
+		description
+			"Takes as an argument a string, which is a <> wrapped
+			string, which offers guidance about the value which
+			should be entered.
+			This will be presented with tab completion options
+			on the CLI.
+			pattern-help is only permitted within a type or typedef
+			statement. It is ignored for non-string types.
+			";
+	}
+
+	extension local {
+		argument text;
+
+		description
+			"Takes as an argument the values 'true' or 'false'.
+			Any node marked as 'true', will have its on-enter
+			script run as the current user";
+	}
+
+	extension secret {
+		argument text;
+
+		description
+			"Takes as an argument the values 'true' or 'false'.
+			Any node marked as 'true' will be considered as
+			sensitive. It will be obfuscated in any logging";
+	}
+
+	extension pass-opc-args {
+		argument text;
+
+		description
+			'Takes as an argument the values "true" or "false".
+			Any node marked as "true" will have the CLI command
+			arguments placed in the OPC_ARGS environment variable in
+			the environment its on-enter script is executed in.
+
+			The arguments are JSON encoded as follows:
+				{ "args" : [ "<arg1>", "<arg2>", "<argN>" ] }
+			';
+	}
+}

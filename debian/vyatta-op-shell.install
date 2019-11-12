@@ -1,0 +1,3 @@
+scripts/bash_completion/vyatta-op etc/bash_completion.d
+scripts/default/vyatta etc/default/
+scripts/interpreter/vyatta-op-run opt/vyatta/share/vyatta-op/functions/interpreter

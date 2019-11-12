@@ -1,0 +1,411 @@
+# Copyright (c) 2018-2019 AT&T Intellectual Property.
+# All Rights Reserved.
+# Copyright (c) 2013-2017 by Brocade Communications Systems, Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: GPL-2.0-only
+
+# vyatta bash operational mode completion
+test -z "$_vyatta_less_options" && \
+    declare -r _vyatta_less_options="\
+	--QUIT-AT-EOF\
+	--quit-if-one-screen\
+	--RAW-CONTROL-CHARS\
+	--squeeze-blank-lines\
+	--no-init"
+test -z "$_vyatta_default_pager" && \
+    declare -r _vyatta_default_pager="less \
+	--buffers=64\
+	--auto-buffers\
+	--no-lessopen\
+	$_vyatta_less_options"
+test -z "$VYATTA_PAGER" && \
+    declare -x VYATTA_PAGER=$_vyatta_default_pager
+
+_vyatta_op_do_key_bindings ()
+{
+  if [ "$SHELL" != "/bin/vbash" ] && [ -e /bin/vbash ] && [ ! -L /bin/vbash ]; then
+    # only do bindings if vbash
+    return
+  fi
+  nullglob_save=$(shopt -p nullglob)
+  shopt -u nullglob
+  case "$-" in
+    *i*)
+      bind '"?": possible-completions' 
+      bind 'set show-all-if-ambiguous on' 
+      bind_cmds=$(grep '^bind .* # vyatta key binding$' $HOME/.bashrc)
+      eval $bind_cmds 
+    ;;
+  esac
+  eval $nullglob_save
+}
+
+_vyatta_op_do_key_bindings
+
+test -f /etc/default/vyatta && \
+    source /etc/default/vyatta
+
+case "$-" in
+  *i*)
+    test -z "$_vyatta_op_last_comp_init" && \
+        declare -r _vyatta_op_last_comp_init='>>>>>>LASTCOMP<<<<<<'
+  ;;
+esac
+
+declare _vyatta_op_last_comp=${_vyatta_op_last_comp_init}
+declare _vyatta_op_node_path
+declare -a _vyatta_op_noncompletions _vyatta_op_completions
+declare -x -a _vyatta_pipe_noncompletions _vyatta_pipe_completions
+declare _vyatta_comptype
+declare -x -a reply
+declare -a _vyatta_operator_allowed
+
+declare -a functions
+functions=( /opt/vyatta/share/vyatta-op/functions/interpreter/* )
+
+for file in "${functions[@]}";do
+  source $file;
+done
+
+#
+# This is the fallback if we detect an empty line starting with a slash ("/")
+#
+_vyatta_op_bash_slash_complete ()
+{
+        COMPREPLY=()
+
+        if [ ${#COMPREPLY[@]} -eq 0 ] ; then
+                COMPREPLY=( $(compgen -d -S "/" -- "${cur}") )
+        fi
+        if [ ${#COMPREPLY[@]} -eq 0 ] ; then
+                COMPREPLY=( $(compgen -c -- "${cur}") )
+        fi
+}
+
+# this is needed to provide original "default completion" behavior.
+# see "vyatta-cfg" completion script for details.
+_vyatta_op_default_expand ()
+{
+  local cur
+  _get_comp_words_by_ref cur
+
+  if [[ $COMP_CWORD -eq 0 ]] && [[ "${cur}" =~ "/" ]]; then
+    # if we are looking for a directory on the first completion then do
+    # directory completions
+    compopt -o nospace
+    _vyatta_op_bash_slash_complete
+    return 0
+  elif (( ${#COMP_WORDS[@]} < 2 )) ||
+     [[ $COMP_CWORD -eq 0 ]] ||
+     [[ $1 == $2 ]]; then
+    _vyatta_op_expand "$@"
+  else
+    # after the first word => cannot be vyatta command so use original default
+    _filedir
+  fi
+}
+
+# $1: label
+# $2...: help
+_vyatta_op_print_help ()
+{
+    local label=$1 help=$2
+    if [ ${#label} -eq 0 ] ; then
+     return
+    elif [ ${#help} -eq 0 ] ; then
+      echo -ne "\n  $label"
+    elif [ ${#label} -lt 6 ] ; then
+      echo -ne "\n  $label\t\t$help"
+    elif [ ${#label} -lt 14 ] ; then
+      echo -ne "\n  $label\t$help"
+    else
+      echo -ne "\n  $label\n\t\t$help"
+    fi
+}
+
+# $1: $cur
+# $2...: current path truncated to COMP_CWORD
+_vyatta_op_help ()
+{
+    OPC_PREFIX="$1" OPC_ARGS=$(_vyatta_op_encode_args "${@:2}") /opt/vyatta/bin/opc -op help-from-env
+}
+
+_vyatta_op_comprely_needs_ambiguity ()
+{
+    local -a uniq
+
+    [ ${#COMPREPLY[@]} -eq 1 ] && return
+
+    uniq=( `printf "%s\n" ${COMPREPLY[@]} | cut -c1 | sort -u` )
+
+    [ ${#uniq[@]} -eq 1 ] && return
+    false
+}
+
+_vyatta_op_expand ()
+{
+    # We need nospace here and we have to append our own spaces
+    compopt -o nospace
+
+    local restore_shopts=$( shopt -p extglob nullglob | tr \\n \; )
+    shopt -s extglob nullglob
+    local cur=""
+    local _has_comptype=0
+    local current_prefix=$2
+    local current_word=$3
+    _vyatta_comptype=""
+
+    if (( ${#COMP_WORDS[@]} > 0 )); then
+        cur=${COMP_WORDS[COMP_CWORD]}
+    else
+        (( COMP_CWORD = ${#COMP_WORDS[@]} ))
+    fi
+
+    if _vyatta_pipe_completion "${COMP_WORDS[@]}"; then
+      if [ "${COMP_WORDS[*]}" == "$_vyatta_op_last_comp" ] ||
+         [ ${#_vyatta_pipe_completions[@]} -eq 0 ]; then
+          _vyatta_do_pipe_help
+          COMPREPLY=( "" " " )
+          _vyatta_op_last_comp=${_vyatta_op_last_comp_init}
+      else
+          COMPREPLY=( "${_vyatta_pipe_completions[@]}" )
+          _vyatta_op_last_comp="${COMP_WORDS[*]}"
+          if [ ${#COMPREPLY[@]} -eq 1 ]; then
+             COMPREPLY=( "${COMPREPLY[0]} " )
+          fi
+      fi
+      eval "$restore_shopts"
+      return
+    fi
+
+    # check to see if the line is valid before doing anything else
+    local out
+    if [[ $COMP_CWORD > 0 ]]; then
+        out=$(OPC_ARGS=$(_vyatta_op_encode_args "${COMP_WORDS[@]:0:$[$COMP_CWORD]}") /opt/vyatta/bin/opc -op expand-from-env  2>&1)
+    fi
+    if [[ $? != 0 ]]; then
+        echo -ne '\a'
+        echo -ne "$out"
+        COMPREPLY=( "" " " )
+        eval "$restore_shopts"
+        return 1
+    fi
+    
+    if [ "${COMP_WORDS[*]:0:$[$COMP_CWORD+1]}" != "$_vyatta_op_last_comp" ] ; then
+        local tmp
+        _vyatta_set_comptype
+        case $_vyatta_comptype in
+          'imagefiles') 
+              _has_comptype=1
+              _vyatta_image_file_complete
+          ;;
+          *)
+              _has_comptype=0
+              if [[ -z "$current_word" ]]; then
+                tmp=$(OPC_PREFIX="$cur" OPC_ARGS=$(_vyatta_op_encode_args "${COMP_WORDS[@]:0:$[$COMP_CWORD-1]}") /opt/vyatta/bin/opc -op complete-from-env)
+                if [[ $? == 0 ]]; then
+                        eval "$tmp"
+                else
+                        COMPREPLY=( "" " " )
+                        eval "$restore_shopts"
+                        return 1
+                fi
+              else
+                tmp=$(OPC_PREFIX="$current_prefix" OPC_ARGS=$(_vyatta_op_encode_args "${COMP_WORDS[@]:0:$[$COMP_CWORD]}") /opt/vyatta/bin/opc -op complete-from-env)
+                if [[ $? == 0 ]]; then
+                        eval "$tmp"
+                else
+                        COMPREPLY=( "" " " )
+                        eval "$restore_shopts"
+                        return 1
+                fi
+              fi
+          ;;
+        esac
+    fi
+    if [[ $_has_comptype == 1 ]]; then
+      COMPREPLY=( "${_vyatta_op_completions[@]}" )
+    else
+      COMPREPLY=($( compgen -W "${_vyatta_op_completions[*]}" -- $current_prefix ))
+    fi
+
+    # if the last command line arg is empty and we have
+    # an empty completion option (meaning wild card),
+    # append a blank(s) to the completion array to force ambiguity
+    if [ -z "$current_prefix" -a -n "$current_word" ] ||
+       [[ "${COMPREPLY[0]}" =~ "$cur" ]]; then
+      for comp ; do
+        if [ -z "$comp" ] ; then
+          if [ ${#COMPREPLY[@]} -eq 0 ] ; then
+            COMPREPLY=( " " "" )
+          elif _vyatta_op_comprely_needs_ambiguity ; then
+            COMPREPLY+=( " " )
+          fi
+        fi
+      done
+    fi
+    # Set this environment to enable and disable debugging on the fly
+    if [[ $DBG_OP_COMPS -eq 1 ]]; then
+      echo -e "\nCurrent: '$cur'"
+      echo -e "Current word: '$current_word'"
+      echo -e "Current prefix: '$current_prefix'"
+      echo "Number of comps: ${#_vyatta_op_completions[*]}"
+      echo "Number of non-comps: ${#_vyatta_op_noncompletions[*]}"
+      echo "_vyatta_op_completions: '${_vyatta_op_completions[*]}'"
+      echo "COMPREPLY: '${COMPREPLY[@]}'"
+      echo "CWORD: $COMP_CWORD"
+      echo "Last comp: '$_vyatta_op_last_comp'"
+      echo -e "Current comp: '${COMP_WORDS[*]:0:$[$COMP_CWORD+1]}'\n"
+    fi
+
+    # This is non obvious... 
+    # To have completion continue to work when working with words that aren't the last word,
+    # we have to set nospace at the beginning of this script and then append the spaces here.
+    if [ ${#COMPREPLY[@]} -eq 1 ] && 
+       [[ $_has_comptype -ne 1 ]]; then
+       COMPREPLY=( "${COMPREPLY[0]} " )
+    fi
+    # Stop completions from getting stuck
+    if [ ${#_vyatta_op_completions[@]} -eq 1 ] &&
+         [ -n "$cur" ] &&
+         [[ "${COMPREPLY[0]}" =~ "$cur" ]]; then
+          _vyatta_op_last_comp=${_vyatta_op_last_comp_init}
+    elif [ ${#_vyatta_op_completions[@]} -eq 1 ] &&
+         [ -n "$current_prefix" ] &&
+         [[ "${COMPREPLY[0]}" =~ "$current_prefix" ]]; then
+          _vyatta_op_last_comp=${_vyatta_op_last_comp_init}
+    # if there are no completions then always show the non-comps
+    elif [ "${COMP_WORDS[*]:0:$[$COMP_CWORD+1]}" == "$_vyatta_op_last_comp" ] || 
+         [ ${#_vyatta_op_completions[@]} -eq 0 ] ||
+         [ -z "$cur" ]; then
+          _vyatta_op_help "$current_prefix" "${COMP_WORDS[@]:0:$[$COMP_CWORD]}" \
+            | ${VYATTA_PAGER:-cat}
+          COMPREPLY=( "" " " )
+          _vyatta_op_last_comp=${_vyatta_op_last_comp_init}
+    else
+      _vyatta_op_last_comp="${COMP_WORDS[*]:0:$[$COMP_CWORD+1]}"
+    fi
+
+    eval "$restore_shopts"
+}
+
+# "pipe" functions
+count ()
+{
+  wc -l
+}
+
+match ()
+{
+  grep -E -e "$1"
+}
+
+no-match ()
+{
+  grep -E -v -e "$1"
+}
+
+no-more ()
+{
+  cat
+}
+
+# pipe command help
+# $1: command
+_vyatta_pipe_help ()
+{
+  local help="No help text available"
+  case "$1" in
+    count) help="Count the number of lines in the output";;
+    match) help="Only output lines that match specified pattern";;
+    no-match) help="Only output lines that do not match specified pattern";;
+    more) help="Paginate the output";;
+    no-more) help="Do not paginate the output";;
+    '<pattern>') help="Pattern for matching";;
+  esac
+  echo -n "$help"
+}
+
+_vyatta_do_pipe_help ()
+{
+  local help=''
+  if (( ${#_vyatta_pipe_completions[@]} + ${#_vyatta_pipe_noncompletions[@]}
+       == 0 )); then
+    return
+  fi
+  echo -en "\nPossible completions:"
+  for comp in "${_vyatta_pipe_completions[@]}" \
+              "${_vyatta_pipe_noncompletions[@]}"; do
+    _vyatta_op_print_help "$comp" "$(_vyatta_pipe_help "$comp")"
+  done
+}
+
+# pipe completion
+# $@: words
+_vyatta_pipe_completion ()
+{
+  local -a pipe_cmd=()
+  local -a all_cmds=( 'count' 'match' 'no-match' 'more' 'no-more' )
+  local found=0
+  _vyatta_pipe_completions=()
+  _vyatta_pipe_noncompletions=()
+
+  for word in "$@"; do
+    if [[ "$found" == "1" || "$word" == "|" ]]; then
+      pipe_cmd+=( "$word" )
+      found=1
+    fi
+  done
+  if (( found == 0 )); then
+    return 1
+  fi
+  if (( ${#pipe_cmd[@]} == 1 )); then
+    # "|" only
+    _vyatta_pipe_completions=( "${all_cmds[@]}" )
+    return 0
+  fi
+  if (( ${#pipe_cmd[@]} == 2 )); then
+    # "|<space, chars, or space+chars>"
+    _vyatta_pipe_completions=($(compgen -W "${all_cmds[*]}" -- ${pipe_cmd[1]}))
+    return 0
+  fi
+  if (( ${#pipe_cmd[@]} == 3 )); then
+    # "|<chars or space+chars><space or space+chars>"
+    case "${pipe_cmd[1]}" in
+      match|no-match) _vyatta_pipe_noncompletions=( '<pattern>' );;
+    esac
+    return 0
+  fi
+  return 0
+}
+
+# comptype
+_vyatta_set_comptype ()
+{
+    local comptype
+    unset _vyatta_comptype
+    local comptype=$(OPC_ARGS=$(_vyatta_op_encode_args "${COMP_WORDS[@]:0:$[$COMP_CWORD]} node.tag") OPC_FIELD=comptype /opt/vyatta/bin/opc -op=field-from-env 2>/dev/null)
+    if [[ $comptype == "imagefiles" ]] ; then
+        _vyatta_comptype=$comptype
+        return 0
+    else
+        _vyatta_comptype=""
+        return 1
+    fi
+}
+
+# don't initialize if we are in configure mode
+if [ "$_OFR_CONFIGURE" == "ok" ]; then
+  return 0
+fi
+
+# Show a different prompt for unprivileged users
+if [[ "$VYATTA_USER_LEVEL_DIR" == "/opt/vyatta/etc/shell/level/users" ]]; then
+    PS1='\u@\h> '
+fi
+_vyatta_op_init $@
+
+###  Local Variables:
+###  mode: shell-script
+###  End:

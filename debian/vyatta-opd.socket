@@ -1,0 +1,11 @@
+[Unit]
+Description=opd socket
+
+[Socket]
+ListenStream=/run/vyatta/opd/main.sock
+SocketUser=opd
+SocketGroup=vyattacfg
+SocketMode=666
+
+[Install]
+WantedBy=sockets.target

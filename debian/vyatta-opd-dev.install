@@ -1,0 +1,2 @@
+src/client/libopdclient.a usr/lib/
+src/client/opd_client.h usr/include/

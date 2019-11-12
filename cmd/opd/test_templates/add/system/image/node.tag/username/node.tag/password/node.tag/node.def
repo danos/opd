@@ -1,0 +1,4 @@
+help: Password to use with authentication
+
+run: /bin/true
+secret: true

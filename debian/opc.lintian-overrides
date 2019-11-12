@@ -1,0 +1,2 @@
+opc: dir-or-file-in-opt
+opc: unstripped-binary-or-object opt/vyatta/bin/opc

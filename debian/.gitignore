@@ -1,0 +1,10 @@
+files
+*.debhelper
+*.debhelper.log
+*.substvars
+lu/
+tmp/
+vyatta-opd/
+vyatta-opd-dev/
+vyatta-opd-v1-yang/
+vyatta-system-acm-opd-v1-yang/

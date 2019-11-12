@@ -1,0 +1,19 @@
+#!/bin/bash -e
+if ! getent passwd opd >/dev/null; then
+        adduser \
+          --system \
+          --group \
+          --home /var/run/vyatta/opd \
+          --gecos "Vyatta Operational Daemon" \
+          --shell /bin/false \
+          opd  >/dev/null
+fi
+
+if [ "$1" = triggered ]; then
+    invoke-rc.d vyatta-opd reload
+    exit 0
+fi
+
+setcap cap_audit_control+ep /opt/vyatta/sbin/opd
+
+##DEBHELPER##

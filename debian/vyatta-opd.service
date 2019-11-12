@@ -1,0 +1,11 @@
+[Unit]
+Description=Operational command daemon
+Before=systemd-user-sessions.service nss-user-lookup.target
+
+[Service]
+Restart=always
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStart=/opt/vyatta/sbin/opd -pidfile /run/vyatta/opd/opd.pid -user opd -group vyattacfg -logfile /var/log/vyatta/opd.log
+
+[Install]
+WantedBy=multi-user.target

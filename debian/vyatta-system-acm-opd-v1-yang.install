@@ -1,0 +1,3 @@
+scripts/vyatta-update-opruleset.pl /opt/vyatta/sbin
+tmplscripts/system/acm /opt/vyatta/share/tmplscripts/system
+yang/vyatta-system-acm-opd-v1.yang /usr/share/configd/yang

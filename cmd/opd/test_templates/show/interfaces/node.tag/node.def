@@ -1,0 +1,3 @@
+help: Show interface information
+allowed: dp0s3 dp0s4 sw2 sw3
+run: ""

@@ -1,0 +1,105 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          vyatta-opd
+# Required-Start:    $local_fs
+# Required-Stop:     $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Vyatta operational mode daemon
+# Description:       Debian init script for the Vyatta opd
+### END INIT INFO
+
+# Copyright (c) 2019, AT&T Intellectual Property. All rights reserved.
+#
+# Copyright (c) 2013-2016 by Brocade Communications Systems, Inc.
+# All rights reserved.
+#
+# SPDX-License-Identifier: LGPL-2.1-only
+. /lib/lsb/init-functions
+
+: ${vyatta_env:=/etc/default/vyatta}
+source "$vyatta_env"
+
+declare progname=${0##*/}
+declare action=$1; shift
+: ${vyatta_prefix:=/opt/vyatta}
+: ${vyatta_sbindir:=${vyatta_prefix}/sbin}
+[[ $PATH == *${vyatta_sbindir}* ]] || PATH+=:${vyatta_sbindir}
+export PATH
+
+NAME=opd
+DESC="opd"
+HOME=/var/run/vyatta/$NAME
+PIDFILE=$HOME/$NAME.pid
+SOCK=$HOME/main.sock
+DAEMON=${vyatta_sbindir}/$NAME
+USER=opd
+GROUP=vyattacfg
+LOG=/var/log/vyatta/$NAME.log
+
+start ()
+{
+	log_action_begin_msg "Starting $DESC"
+	mkdir -p $HOME
+	mkdir -p "$(dirname $LOG)"
+
+        ulimit -n 64000
+
+	getent passwd $USER | cut -d: -f3 > /proc/$$/loginuid
+	# Start up
+	start-stop-daemon --start --quiet --pidfile $PIDFILE \
+		--exec $DAEMON --name $NAME --background -- \
+		-pidfile $PIDFILE -user $USER -group $GROUP -logfile $LOG
+
+	if [[ $? == 1 ]]; then
+		log_action_end_msg $?
+		return
+	fi
+
+	i=0
+	while [[ ! -f $PIDFILE ]]; do
+		sleep 1
+		((i++))
+		if [[ $i -gt 10 ]]; then
+			log_action_end_msg 0
+			return
+		fi
+	done
+	read pid <$PIDFILE
+
+	# Make it OOM-Killer immune
+	echo '-1000' > "/proc/$pid/oom_score_adj"
+
+	# Ensure the socket has proper ownership and perm
+	chgrp ${GROUP} $SOCK
+	chmod g+rwx $SOCK
+
+	log_action_end_msg $?
+}
+
+stop()
+{
+	log_action_begin_msg "Stopping $DESC"
+	start-stop-daemon --stop --quiet --pidfile=$PIDFILE \
+		--name $NAME --oknodo --exec $DAEMON
+	rm -f $PIDFILE
+	log_action_end_msg $?
+}
+
+reload()
+{
+	log_action_begin_msg "Reloading $DESC configuration"
+	start-stop-daemon --stop --signal HUP --quiet --pidfile=$PIDFILE \
+		--name $NAME --exec $DAEMON
+	log_action_end_msg $?
+}
+
+case "$action" in
+	start) start ;;
+	stop)  stop ;;
+	force-reload | restart) stop; start ;;
+	reload) reload ;;
+	*) log_failure_msg "usage: $progname [ start|stop|restart|reload|force-reload ]" ;;
+esac
+
+exit $?

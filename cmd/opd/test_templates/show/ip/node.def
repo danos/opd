@@ -1,0 +1,2 @@
+help: Show ip information
+run: echo ${@}

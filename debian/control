@@ -1,0 +1,82 @@
+Source: vyatta-opd
+Section: admin
+Priority: optional
+Maintainer: Vyatta Package Maintainers <DL-vyatta-help@att.com>
+Build-Depends:
+ debhelper (>= 9),
+ dh-golang (>= 1.18),
+ debhelper (>= 9.20160709) | dh-systemd,
+ dh-yang,
+ golang (>=2:1.4),
+ golang-github-danos-aaa-dev,
+ golang-github-danos-config-dev,
+ golang-github-danos-mgmterror-dev,
+ golang-github-danos-op-dev,
+ golang-github-danos-utils-args-dev,
+ golang-github-danos-utils-audit-dev,
+ golang-github-danos-utils-natsort-dev,
+ golang-github-danos-utils-os-group-dev,
+ golang-github-danos-utils-patherr-dev,
+ golang-github-danos-utils-pathutil-dev,
+ golang-github-danos-utils-tty-dev,
+ golang-github-danos-yang-dev (>= 1.1),
+ golang-go-systemd-dev,
+ libaudit-dev,
+ libjansson-dev,
+ libvyatta-util-dev (>=0.14)
+Standards-Version: 3.9.8
+
+Package: vyatta-opd
+Architecture: any
+Replaces: vyatta-op
+Description: Operational mode daemon
+ Vyatta operational mode daemon provides operational mode commands
+ and command authorization.
+Depends:
+ adduser,
+ libcap2-bin,
+ lsb-base (>= 3.0-6),
+ lu,
+ ${misc:Depends},
+ ${shlibs:Depends}
+
+Package: vyatta-opd-dev
+Architecture: any
+Description: Development libraries for packages in the vyatta-opd package
+ This package contains precompiled libraries that implement vyatta-opd.
+ They can be used to work with the libraries outside of opd itself.
+Depends: golang (>=2:1.1.2), ${misc:Depends}
+
+Package: opc
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends},
+Recommends: vyatta-opd (>= ${binary:Version})
+Description: opd client program
+ This package contains a command line client for opd. It can serve as
+ an implementation of shell commands that interact with vyatta-opd.
+
+Package: vyatta-op-shell
+Architecture: all
+Depends: bash (>= 5~) | vyatta-bash (>= 1:4.4-1vyatta12), less, opc,
+ ${misc:Depends},
+Recommends: vyatta-opd (>= ${binary:Version})
+Description: Operational mode CLI
+ This package provides the CLI for the operational mode shell
+
+Package: vyatta-opd-v1-yang
+Architecture: all
+Depends: vyatta-opd, ${misc:Depends}, ${yang:Depends}
+Description: Yang module for opd RPCs
+ The YANG module for vyatta-opd
+
+Package: vyatta-system-acm-opd-v1-yang
+Architecture: all
+Depends: vyatta-cfg, vyatta-opd, ${misc:Depends}, ${yang:Depends}
+Description: Yang module for opd's ACM
+ The YANG module for opd's access control mechanism
+
+Package: vyatta-opd-extensions-v1-yang
+Architecture: all
+Depends: vyatta-opd, ${misc:Depends}, ${yang:Depends}
+Description: Yang module for opd's CLI definitions
+ The YANG module for opd's YANG based operational command definitions

@@ -1,0 +1,3 @@
+vyatta-opd: dir-or-file-in-opt
+vyatta-opd: unstripped-binary-or-object
+vyatta-opd: unusual-interpreter opt/vyatta/share/tmplscripts/*
