@@ -15,6 +15,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/danos/utils/guard"
 	"github.com/danos/utils/os/group"
 	"github.com/danos/utils/pathutil"
 
@@ -77,7 +78,9 @@ func (a *Authdb) aaaAccount(
 
 		// Assumes configuration will enforce only one accounting protocol.
 		// The first protocol located to perform accounting will be used.
-		err := proto.Plugin.Account("op-mode", uid, groupsStr, path, pathAttrs, env)
+		err := guard.CatchPanicErrorOnly(func() error {
+			return proto.Plugin.Account("op-mode", uid, groupsStr, path, pathAttrs, env)
+		})
 		if err != nil {
 			a.logf("Accounting error via AAA protocol %s: %v", aaaName, err)
 		}
@@ -123,7 +126,9 @@ func (a *Authdb) aaaAuthorizePath(
 				continue
 			}
 			groupsStr := convertGroupsToStrings(groups)
-			isValidUser, err := proto.Plugin.ValidUser(uid, groupsStr)
+			isValidUser, err := guard.CatchPanicBoolError(func() (bool, error) {
+				return proto.Plugin.ValidUser(uid, groupsStr)
+			})
 			if err != nil {
 				a.logf("Error validating user (%d) via AAA protocol %s: %v", uid, aaaName, err)
 				continue
@@ -142,7 +147,9 @@ func (a *Authdb) aaaAuthorizePath(
 			// Assumes configuration will enforce only one authorisation protocol per user.
 			// The first protocol located to authorise a user will provide the definitive
 			// result.
-			result, err = proto.Plugin.Authorize("op-mode", uid, groupsStr, path, pathAttrs)
+			result, err = guard.CatchPanicBoolError(func() (bool, error) {
+				return proto.Plugin.Authorize("op-mode", uid, groupsStr, path, pathAttrs)
+			})
 
 			if err != nil {
 				a.logf("Authorization error via AAA protocol %s: %v", aaaName, err)

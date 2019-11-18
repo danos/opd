@@ -1,7 +1,7 @@
 # Copyright (c) 2019 AT&T Intellectual Property.
 # All Rights Reserved.
 #
-# SPDX-License-Identifier: GPL-2.0-only
+# SPDX-License-Identifier: LGPL-2.1-only
 
 # This is a special case for tab completion where the quoted variable
 # exactly as entered on the CLI is presented instead of the interpreted

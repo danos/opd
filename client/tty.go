@@ -3,7 +3,7 @@
 // Copyright (c) 2013-2016 by Brocade Communications Systems, Inc.
 // All rights reserved.
 //
-// SPDX-License-Identifier: LGPL-2.1-only
+// SPDX-License-Identifier: MPL-2.0
 
 package client
 

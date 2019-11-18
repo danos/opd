@@ -1,5 +1,12 @@
+vyatta-opd (1.11) unstable; urgency=medium
+
+  * DANOS Import Master
+
+ -- Vyatta Package Maintainers <DL-vyatta-help@att.com>  Fri, 15 Nov 2019 11:36:21 +0000
+
 vyatta-opd (1.10.1.1) unstable; urgency=medium
 
   * DANOS Import
 
  -- Vyatta Package Maintainers <DL-vyatta-help@att.com>  Tue, 12 Nov 2019 10:18:55 +0000
+

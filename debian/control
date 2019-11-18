@@ -14,6 +14,7 @@ Build-Depends:
  golang-github-danos-op-dev,
  golang-github-danos-utils-args-dev,
  golang-github-danos-utils-audit-dev,
+ golang-github-danos-utils-guard-dev,
  golang-github-danos-utils-natsort-dev,
  golang-github-danos-utils-os-group-dev,
  golang-github-danos-utils-patherr-dev,
