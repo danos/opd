@@ -23,6 +23,14 @@ _vyatta_op_init ()
         fi
     fi
 
+    # Override shopt to ensure the output it returns, when called with -po,
+    # will result in the builtin set being called, rather than our alias.
+    # The output from all calls to shopt is passed to sed although we are
+    # only interested in the output when -po is used.
+    shopt() {
+        builtin shopt "$@" | sed -Ee 's/^set ([-+])/builtin set \1/'
+    }
+
     # create the top level aliases for the unambiguous portions of the commands
     # this is the only place we need an entire enumerated list of the subcommands
     for cmd in $( /opt/vyatta/bin/opc -op children '' ); do
