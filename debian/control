@@ -60,6 +60,7 @@ Package: vyatta-op-shell
 Architecture: all
 Depends:
  bash (>= 5~) | vyatta-bash (>= 1:4.4-1vyatta12),
+ bash-completion,
  less,
  opc,
  ${misc:Depends}
