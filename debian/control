@@ -4,8 +4,8 @@ Priority: optional
 Maintainer: Vyatta Package Maintainers <DL-vyatta-help@att.com>
 Build-Depends:
  debhelper (>= 9),
- dh-golang (>= 1.18),
  debhelper (>= 9.20160709) | dh-systemd,
+ dh-golang (>= 1.18),
  dh-yang,
  golang (>=2:1.4),
  golang-github-danos-aaa-dev,
@@ -50,7 +50,7 @@ Depends: golang (>=2:1.1.2), ${misc:Depends}
 
 Package: opc
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends},
+Depends: ${misc:Depends}, ${shlibs:Depends}
 Recommends: vyatta-opd (>= ${binary:Version})
 Description: opd client program
  This package contains a command line client for opd. It can serve as
@@ -58,8 +58,11 @@ Description: opd client program
 
 Package: vyatta-op-shell
 Architecture: all
-Depends: bash (>= 5~) | vyatta-bash (>= 1:4.4-1vyatta12), less, opc,
- ${misc:Depends},
+Depends:
+ bash (>= 5~) | vyatta-bash (>= 1:4.4-1vyatta12),
+ less,
+ opc,
+ ${misc:Depends}
 Recommends: vyatta-opd (>= ${binary:Version})
 Description: Operational mode CLI
  This package provides the CLI for the operational mode shell
