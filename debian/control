@@ -1,4 +1,4 @@
-Source: vyatta-opd
+Source: opd
 Section: admin
 Priority: optional
 Maintainer: Vyatta Package Maintainers <DL-vyatta-help@att.com>

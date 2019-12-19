@@ -1,3 +1,9 @@
+opd (1.12) UNRELEASED; urgency=medium
+
+  * Rename to opd
+
+ -- James Wheatley <jammy@att.com>  Thu, 19 Dec 2019 10:50:21 +0000
+
 vyatta-opd (1.11) unstable; urgency=medium
 
   * DANOS Import Master
