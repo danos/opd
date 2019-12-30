@@ -13,14 +13,18 @@ _vyatta_op_init ()
     # empty and first word or default line completion
     complete -E -F _vyatta_op_expand
     # bash >= 5.0
-    complete -I -F _vyatta_op_default_expand &>/dev/null
-    # fallback to vyatta-bash
-    if [ $? -ne 0 ]; then
-        complete -D -F _vyatta_op_default_expand -o nofirstword &>/dev/null
-        # fallback to bash << 5.0
+    if [ ${BASH_VERSION:0:1} -ge 5 ]; then
+        complete -I -F _vyatta_op_default_expand &>/dev/null
+        # fallback to vyatta-bash
         if [ $? -ne 0 ]; then
-            complete -D -F _vyatta_op_default_expand
+            complete -D -F _vyatta_op_default_expand -o nofirstword &>/dev/null
+            # fallback to bash << 5.0
+            if [ $? -ne 0 ]; then
+                complete -D -F _vyatta_op_default_expand
+            fi
         fi
+    else
+        complete -D -F _vyatta_op_default_expand -o nofirstword &>/dev/null
     fi
 
     # create the top level aliases for the unambiguous portions of the commands
