@@ -1,8 +1,9 @@
-opd (1.12) UNRELEASED; urgency=medium
+opd (1.12) unstable; urgency=medium
 
+  [ James Wheatley ]
   * Rename to opd
 
- -- James Wheatley <jammy@att.com>  Thu, 19 Dec 2019 10:50:21 +0000
+ -- William Ivory <william.ivory@intl.att.com>  Fri, 03 Apr 2020 11:43:36 +0100
 
 vyatta-opd (1.11) unstable; urgency=medium
 
