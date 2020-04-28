@@ -1,2 +1,4 @@
 opc: dir-or-file-in-opt
 opc: unstripped-binary-or-object opt/vyatta/bin/opc
+opc: statically-linked-binary lib/opc/bin/opc-args-encoder
+opc: unstripped-binary-or-object lib/opc/bin/opc-args-encoder

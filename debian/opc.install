@@ -1,2 +1,3 @@
 cmd/opc/scripts/opc-args-encoder lib/opc
+usr/bin/opc-args-encoder lib/opc/bin
 usr/bin/opc opt/vyatta/bin
