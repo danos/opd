@@ -10,6 +10,7 @@ test -z "$_vyatta_less_options" && \
     declare -r _vyatta_less_options="\
 	--QUIT-AT-EOF\
 	--quit-if-one-screen\
+	--quit-on-intr\
 	--RAW-CONTROL-CHARS\
 	--squeeze-blank-lines\
 	--no-init"
