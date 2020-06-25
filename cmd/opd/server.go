@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2019, AT&T Intellectual Property.
+// Copyright (c) 2017-2020, AT&T Intellectual Property.
 // All rights reserved.
 //
 // Copyright (c) 2013-2017 by Brocade Communications Systems, Inc.
@@ -11,10 +11,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/danos/utils/audit"
-	"github.com/danos/utils/os/group"
-	"github.com/danos/utils/pathutil"
-	"github.com/danos/utils/tty"
 	"io"
 	"log"
 	"net"
@@ -31,6 +27,11 @@ import (
 	"github.com/danos/op/tmpl/tree"
 	"github.com/danos/op/yang"
 	"github.com/danos/opd/rpc"
+	"github.com/danos/utils/audit"
+	"github.com/danos/utils/os/group"
+	"github.com/danos/utils/pathutil"
+	"github.com/danos/utils/shell"
+	"github.com/danos/utils/tty"
 )
 
 type AuthEnv struct {
@@ -789,6 +790,13 @@ func (d *Server) Children(path tree.Path, cred *ucred) (reply []string, err erro
 	return
 }
 
+func quotePath(path []string) []string {
+	for i, v := range path {
+		path[i] = shell.Quote(v)
+	}
+	return path
+}
+
 //Allowed evaluates the allowed values for a node at the given path and returns the result.
 func (d *Server) Allowed(path tree.Path, cred *ucred) ([]string, error) {
 	var allow string
@@ -818,7 +826,8 @@ func (d *Server) Allowed(path tree.Path, cred *ucred) ([]string, error) {
 		return nil, err
 	}
 
-	comp_words := "COMP_WORDS=( " + strings.Join(path, " ") + " )"
+	cwords := strings.Join(quotePath(pathutil.Copypath([]string(path))), " ")
+	comp_words := "COMP_WORDS=( " + cwords + " )"
 	comp_cword := "COMP_CWORD=" + strconv.Itoa(len(path)-1)
 
 	//BUG(jhs): workaround bash not allowing exported arrays
