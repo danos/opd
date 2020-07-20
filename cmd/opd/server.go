@@ -618,7 +618,7 @@ func (d *Server) Complete(path tree.Path, cred *ucred) ([]string, error) {
 	reply, err := d.addTemplateCompletions(reply, path, cred)
 	reply, yerr := d.addYangCompletions(reply, path, cred)
 
-	allow, _ := d.Allowed(path, cred)
+	allow, _ := d.allowedInternal(path, cred, true)
 	for _, a := range allow {
 		reply = appenduniq(reply, a)
 	}
@@ -643,7 +643,7 @@ func (d *Server) Help(path tree.Path, cred *ucred) (map[string]string, error) {
 		}
 	}
 
-	op, yerr := d.Allowed(path, cred)
+	op, yerr := d.allowedInternal(path, cred, true)
 	for _, v := range op {
 		reply[v] = ""
 	}
@@ -653,10 +653,13 @@ func (d *Server) Help(path tree.Path, cred *ucred) (map[string]string, error) {
 		f := func(n *tree.OpTree, v string) {
 			t := n.Value()
 			if t != nil {
-				if _, ok := reply[v]; !ok {
-					help := t.Help()
-					reply[v] = help
+				if ht, ok := reply[v]; ok {
+					if ht != "" {
+						return
+					}
 				}
+				help := t.Help()
+				reply[v] = help
 			}
 		}
 
@@ -803,12 +806,21 @@ func quotePath(path []string) []string {
 	return path
 }
 
-//Allowed evaluates the allowed values for a node at the given path and returns the result.
 func (d *Server) Allowed(path tree.Path, cred *ucred) ([]string, error) {
-	var allow string
+	return d.allowedInternal(path, cred, false)
+}
+
+func (d *Server) allowedInternal(path tree.Path, cred *ucred, helpmode bool) ([]string, error) {
 	allow, err := d.Y.TmplGetAllowed(path)
+
 	if err != nil {
-		n, err := d.getNode(path)
+		hp := path
+		if helpmode {
+			// We want allowed values from child node.tag, if it exists
+			hp = append(hp, "node.tag")
+		}
+		n, err := d.getNode(hp)
+
 		if err != nil {
 			return nil, err
 		}
