@@ -15,6 +15,7 @@ import (
 	"log"
 	"net"
 	"net/url"
+	"os"
 	"os/exec"
 	"os/user"
 	"sort"
@@ -521,7 +522,12 @@ func (d *Server) Run(path tree.Path, args []string, cred *ucred) (reply int, err
 	}
 
 	// Create sensible default for PWD
-	cenv = append(cenv, "PWD="+u.HomeDir)
+	pwd := u.HomeDir
+	if _, err := os.Stat(pwd); os.IsNotExist(err) {
+		pwd = "/"
+	}
+	cenv = append(cenv, "PWD="+pwd)
+
 	cenv = append(cenv, "HOME="+u.HomeDir)
 	cenv = append(cenv, "LOGNAME="+u.Username)
 
