@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019, AT&T Intellectual Property.
+// Copyright (c) 2018-2020, AT&T Intellectual Property.
 // All rights reserved.
 //
 // SPDX-License-Identifier: LGPL-2.1-only
@@ -38,27 +38,18 @@ var testSchema = `opd:command show {
 	}
  }`
 
-func TestCompletionCommandHelp(t *testing.T) {
-	schema_text := bytes.NewBufferString(fmt.Sprintf(
-		schemaTemplate, testSchema))
-
-	expects := map[string]string{
-		"<swN|swN.M>": "Show switch",
-		"detail":      "Show detailed info",
-		"sw1":         "",
-		"sw2":         "",
-	}
-
-	path := []string{"show", "interfaces", "switch"}
+func checkHelpCompletion(
+	t *testing.T,
+	schema_text *bytes.Buffer,
+	templates string,
+	path []string,
+	expects map[string]string,
+) {
 	srv := newTestServer(t, schema_text, "test_templates/")
-
-	// Get the help text
 	comps, err := srv.Help(path, &ucred{})
-
 	if err != nil {
 		t.Errorf("Unexpected completion failure:\n  %s\n\n", err.Error())
 	}
-
 	// Verify that the expected help text is seen
 	if len(comps) != len(expects) {
 		t.Errorf("Completions do not match:\n   Expected - %v\n  Got = %v\n", expects, comps)
@@ -75,6 +66,58 @@ func TestCompletionCommandHelp(t *testing.T) {
 			}
 		}
 	}
+
+}
+
+// Verify help derived from both yang and templates works
+func TestCompletionCommandHelp(t *testing.T) {
+	schema_text := bytes.NewBufferString(fmt.Sprintf(
+		schemaTemplate, testSchema))
+
+	expects := map[string]string{
+		"<swN|swN.M>": "Show switch",
+		"detail":      "Show detailed info",
+		"sw1":         "",
+		"sw2":         "",
+	}
+
+	path := []string{"show", "interfaces", "switch"}
+
+	checkHelpCompletion(t, schema_text, "test_templates/", path, expects)
+}
+
+// Check help text for a node.tag with allowed script is correct.
+func TestCompletionCommandHelpWithAllowedValues(t *testing.T) {
+	schema_text := bytes.NewBufferString(fmt.Sprintf(
+		schemaTemplate, testSchema))
+
+	expects := map[string]string{
+		"dp0s3":  "Show interface information",
+		"dp0s4":  "Show interface information",
+		"sw2":    "Show interface information",
+		"sw3":    "Show interface information",
+		"switch": "Show switch info",
+	}
+
+	path := []string{"show", "interfaces"}
+
+	checkHelpCompletion(t, schema_text, "test_templates/", path, expects)
+}
+
+// Check help text for a child of a node.tag is correct and does not include
+// parents allowed script derived values.
+func TestCompletionCommandHelpWithAllowedValuesChildOfNodeTag(t *testing.T) {
+	schema_text := bytes.NewBufferString(fmt.Sprintf(
+		schemaTemplate, testSchema))
+
+	expects := map[string]string{
+		"<Enter>": "Execute the current command",
+	}
+
+	path := []string{"show", "interfaces", "dp0s3"}
+
+	checkHelpCompletion(t, schema_text, "test_templates/", path, expects)
+
 }
 
 func checkAmbiguousError(
