@@ -1,3 +1,15 @@
+opd (1.13) unstable; urgency=medium
+
+  [ Michael Doyle ]
+  * Restore op-mode pipe completion
+
+  [ John Southworth ]
+  * Create a binary argument encoder to speed up argument encoding.
+  * Make the pager exit when interrupted
+  * Quote shell paths before passing them to scripts.
+
+ -- William Ivory <william.ivory@intl.att.com>  Wed, 22 Jul 2020 11:43:37 +0100
+
 opd (1.12) unstable; urgency=medium
 
   [ James Wheatley ]
