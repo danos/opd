@@ -1,3 +1,10 @@
+vyatta-opd (1.11.2) unstable; urgency=medium
+
+  * Fix help text for template defined commands (Fixes: VRVDR-42123)
+  * Help text test for node.tag templates (Closes: VRVDR-42123)
+
+ -- Paul Carson <paul.carson@intl.att.com>  Wed, 05 Aug 2020 09:40:57 +0100
+
 vyatta-opd (1.11.1) unstable; urgency=medium
 
   [ John Southworth ]
