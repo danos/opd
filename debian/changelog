@@ -1,3 +1,10 @@
+opd (1.12.2) unstable; urgency=medium
+
+  * Fix help text for template defined commands (Fixes: VRVDR-42123)
+  * Help text test for node.tag templates (Closes: VRVDR-42123)
+
+ -- Paul Carson <paul.carson@intl.att.com>  Thu, 06 Aug 2020 15:44:17 +0100
+
 opd (1.12.1) unstable; urgency=medium
 
   [ John Southworth ]
