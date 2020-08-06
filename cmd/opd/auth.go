@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2019, AT&T Intellectual Property.
+// Copyright (c) 2018-2020, AT&T Intellectual Property.
 // All rights reserved.
 //
 // Copyright (c) 2013, 2017 by Brocade Communications Systems, Inc.
@@ -10,6 +10,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"os"
 	"strconv"
@@ -56,6 +57,11 @@ func convertGroupsToStrings(groups []*group.Group) []string {
 	return ret
 }
 
+type TaskAccounter interface {
+	AccountStart() error
+	AccountStop(*error) error
+}
+
 func (a *Authdb) aaaAccount(
 	aaaif *aaa.AAA,
 	uid uint32,
@@ -63,10 +69,10 @@ func (a *Authdb) aaaAccount(
 	path []string,
 	pathAttrs *pathutil.PathAttrs,
 	env map[string]string,
-) error {
+) (TaskAccounter, error) {
 
 	if aaaif == nil {
-		return nil
+		return nil, nil
 	}
 
 	groupsStr := convertGroupsToStrings(groups)
@@ -78,20 +84,24 @@ func (a *Authdb) aaaAccount(
 
 		// Assumes configuration will enforce only one accounting protocol.
 		// The first protocol located to perform accounting will be used.
-		err := guard.CatchPanicErrorOnly(func() error {
-			return proto.Plugin.Account("op-mode", uid, groupsStr, path, pathAttrs, env)
+		t, err := guard.CatchPanic(func() (interface{}, error) {
+			return proto.Plugin.NewTask("op-mode", uid, groupsStr, path, pathAttrs, env)
 		})
+		if t == nil && err == nil {
+			err = errors.New("No task object")
+		}
 		if err != nil {
 			a.logf("Accounting error via AAA protocol %s: %v", aaaName, err)
+			return nil, err
 		}
-		return err
+		return t.(TaskAccounter), err
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (a *Authdb) account(aaaif *aaa.AAA, uid uint32, groups []*group.Group,
-	path []string, pathAttrs *pathutil.PathAttrs, env map[string]string) error {
+	path []string, pathAttrs *pathutil.PathAttrs, env map[string]string) (TaskAccounter, error) {
 	// For now accounting happens for *all* users by a AAA plugin
 	return a.aaaAccount(aaaif, uid, groups, path, pathAttrs, env)
 }
@@ -101,7 +111,7 @@ func authEnvToMap(env *AuthEnv) map[string]string {
 }
 
 func account(a *Authdb, aaaif *aaa.AAA, req *AcctReq) {
-	a.account(aaaif, req.Uid, req.Groups, req.Path, req.PathAttrs, authEnvToMap(&req.Env))
+	req.Resp <- newAcctResp(a.account(aaaif, req.Uid, req.Groups, req.Path, req.PathAttrs, authEnvToMap(&req.Env)))
 }
 
 /* First bool returns the result, second if the result should be discarded and AAA

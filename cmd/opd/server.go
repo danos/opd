@@ -68,6 +68,8 @@ type AcctReq struct {
 	Groups []*group.Group
 	//Authorization environment attributes
 	Env AuthEnv
+	//Response channel
+	Resp chan *AcctResp
 }
 
 //PermReq is a request for the permission subset for your user
@@ -101,6 +103,15 @@ func newUcred(c *syscall.Ucred) *ucred {
 	}
 
 	return &ucred{*c, groups}
+}
+
+type AcctResp struct {
+	Accounter TaskAccounter
+	Err       error
+}
+
+func newAcctResp(accounter TaskAccounter, err error) *AcctResp {
+	return &AcctResp{Accounter: accounter, Err: err}
 }
 
 type AuthResp struct {
@@ -422,8 +433,15 @@ func (d *Server) account(path tree.Path, cred *ucred) {
 	ttyName, err := tty.TtyNameForPid(int(cred.Pid))
 	d.LogError(err)
 	authEnv := &AuthEnv{Tty: ttyName}
+
 	areq := &AcctReq{Path: path, PathAttrs: attrs, Uid: cred.Uid, Groups: cred.Groups, Env: *authEnv}
+	areq.Resp = make(chan *AcctResp)
 	d.AcctChan <- areq
+
+	resp := <-areq.Resp
+	if resp.Err == nil {
+		resp.Accounter.AccountStop(nil)
+	}
 }
 
 //authorize is an internal helper that will preform authorization request and return the value from the response channel

@@ -1,4 +1,4 @@
-// Copyright (c) 2019, AT&T Intellectual Property.
+// Copyright (c) 2019-2020, AT&T Intellectual Property.
 // All rights reserved.
 //
 // SPDX-License-Identifier: LGPL-2.1-only
@@ -40,6 +40,11 @@ func (p *DummyPlugin) Authorize(context string, uid uint32, groups []string, pat
 		return false, fmt.Errorf("Dummy failure of Authorization method.")
 	}
 	return !p.failAuthorization, nil
+}
+
+func (p *DummyPlugin) NewTask(context string, uid uint32, groups []string, path []string,
+	pathAttrs *pathutil.PathAttrs, env map[string]string) (aaa.AAATask, error) {
+	return nil, nil
 }
 
 func (p *DummyPlugin) Account(context string, uid uint32, groups []string, path []string,

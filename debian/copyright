@@ -3,7 +3,7 @@ Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Files: *
 Copyright: 2013-2017, Brocade Communications Systems, Inc.
            2013,2015, Brocade Communication Systems, Inc.
-           2017-2019, AT&T Intellectual Property.
+           2017-2020, AT&T Intellectual Property.
 License: LGPL-2.1
 
 Files: yang/*

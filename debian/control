@@ -8,7 +8,7 @@ Build-Depends:
  dh-golang (>= 1.18),
  dh-yang,
  golang (>=2:1.4),
- golang-github-danos-aaa-dev,
+ golang-github-danos-aaa-dev (>= 2.0),
  golang-github-danos-config-dev,
  golang-github-danos-mgmterror-dev,
  golang-github-danos-op-dev,
