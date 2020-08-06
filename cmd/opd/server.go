@@ -428,7 +428,7 @@ func (d *Server) auth(areq *Auth) (bool, error) {
 
 }
 
-func (d *Server) account(path tree.Path, cred *ucred) {
+func (d *Server) getAccounter(path tree.Path, cred *ucred) (TaskAccounter, error) {
 	attrs := d.AttrsForPath(path)
 	ttyName, err := tty.TtyNameForPid(int(cred.Pid))
 	d.LogError(err)
@@ -439,9 +439,7 @@ func (d *Server) account(path tree.Path, cred *ucred) {
 	d.AcctChan <- areq
 
 	resp := <-areq.Resp
-	if resp.Err == nil {
-		resp.Accounter.AccountStop(nil)
-	}
+	return resp.Accounter, resp.Err
 }
 
 //authorize is an internal helper that will preform authorization request and return the value from the response channel
@@ -530,8 +528,6 @@ func (d *Server) Run(path tree.Path, args []string, cred *ucred) (reply int, err
 		return -1, err
 	}
 
-	defer d.account(path, cred)
-
 	var cenv []string
 	for _, v := range env {
 		if envAllowed(tmpl, v) {
@@ -571,7 +567,15 @@ func (d *Server) Run(path tree.Path, args []string, cred *ucred) (reply int, err
 		Istty:    istty,
 		Termpath: termpath,
 	}
-	return Run(cmd)
+
+	if a, _ := d.getAccounter(path, cred); a != nil {
+		defer a.AccountStop(&err)
+		a.AccountStart()
+	}
+
+	// Must assign any error from Run() to err so it is passed to AccountStop()
+	ret, err := Run(cmd)
+	return ret, err
 }
 
 func (d *Server) addYangCompletions(comps []string, path tree.Path, cred *ucred) ([]string, error) {
