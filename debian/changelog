@@ -1,3 +1,18 @@
+opd (1.14) unstable; urgency=medium
+
+  [ Duncan Eastoe ]
+  * opd: set PWD to / if $HOME does not exist
+
+  [ Paul Carson ]
+  * Fix help text for template defined commands (Fixes: VRVDR-42123)
+  * Help text test for node.tag templates (Closes: VRVDR-42123)
+
+  [ Duncan Eastoe ]
+  * opd: Migrate to aaa plugin API v2
+  * opd: call AccountStart() before executing cmds
+
+ -- William Ivory <william.ivory@intl.att.com>  Fri, 25 Sep 2020 08:50:58 +0100
+
 opd (1.13) unstable; urgency=medium
 
   [ Michael Doyle ]
