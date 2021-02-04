@@ -1,4 +1,4 @@
-// Copyright (c) 2017-2020, AT&T Intellectual Property.
+// Copyright (c) 2017-2021, AT&T Intellectual Property.
 // All rights reserved.
 //
 // Copyright (c) 2013-2017 by Brocade Communications Systems, Inc.
@@ -155,10 +155,27 @@ func envAllowed(tmpl *tmpl.OpTmpl, env string) bool {
 type SrvConn struct {
 	*net.UnixConn
 	Srv  *Server
+	term *os.File
 	uid  uint32
 	cred *syscall.Ucred
 	enc  *json.Encoder
 	dec  *json.Decoder
+}
+
+func (conn *SrvConn) closeTerm() error {
+	var err error
+
+	if conn.term != nil {
+		err = conn.term.Close()
+		if err != nil {
+			conn.Srv.LogError(fmt.Errorf(
+				"Error closing terminal passed on user %v's connection: %v",
+				conn.cred.Uid, err))
+		}
+		conn.term = nil
+	}
+
+	return err
 }
 
 //Send an rpc response with appropriate data or an error
@@ -174,6 +191,7 @@ func (conn *SrvConn) sendResponse(resp *rpc.Response) error {
 
 //Receive an rpc request and do some preprocessing.
 func (conn *SrvConn) readRequest(req *rpc.Request) error {
+	conn.closeTerm()
 	err := conn.dec.Decode(req)
 	if err != nil {
 		return err
@@ -228,6 +246,70 @@ func (conn *SrvConn) getCreds() error {
 	}
 
 	return nil
+}
+
+func (conn *SrvConn) Close() error {
+	conn.closeTerm()
+	return conn.UnixConn.Close()
+}
+
+func (conn *SrvConn) Read(p []byte) (int, error) {
+	oob := make([]byte, syscall.CmsgSpace(strconv.IntSize/8))
+
+	n, oobn, _, _, err := conn.ReadMsgUnix(p, oob)
+	if err != nil || oobn == 0 || conn.term != nil {
+		return n, err
+	}
+
+	oob = oob[0:oobn]
+	if conn.Srv.Debug {
+		conn.Srv.Logf("Received %v bytes OOB data on user %v's connection: %#v",
+			oobn, conn.cred.Uid, oob)
+	}
+
+	msgs, err := syscall.ParseSocketControlMessage(oob)
+	if err != nil {
+		conn.Srv.LogError(err)
+		return n, err
+	}
+
+	// Currently we only expect one ancilliary message, SCM_RIGHTS, containing
+	// a single file descriptor, representing the terminal we will read from
+	// and write to, for a Run RPC request.
+	for _, msg := range msgs {
+		if msg.Header.Type != syscall.SCM_RIGHTS {
+			continue
+		}
+
+		fds, err := syscall.ParseUnixRights(&msg)
+		if err != nil {
+			conn.Srv.LogError(fmt.Errorf(
+				"Error parsing SCM_RIGHTS on user %v's connection: %v",
+				conn.cred.Uid, err))
+			continue
+		}
+		if len(fds) != 1 {
+			conn.Srv.LogError(fmt.Errorf(
+				"Unexpected number of descriptors (%v) on user %v's connection",
+				len(fds), conn.cred.Uid))
+			continue
+		}
+
+		conn.term = os.NewFile(uintptr(fds[0]), "")
+		if conn.term == nil {
+			conn.Srv.LogError(fmt.Errorf(
+				"Failed to create terminal File from descriptor %v passed on user %v's connection",
+				fds[0], conn.cred.Uid))
+			syscall.Close(fds[0])
+		} else if conn.Srv.Debug {
+			conn.Srv.Logf("Received terminal descriptor %v on user %v's connection",
+				conn.term.Fd(), conn.cred.Uid)
+		}
+
+		break
+	}
+
+	return n, err
 }
 
 //Handle is the main loop for a connection. It receives the requests, authorizes the request, calls the
@@ -358,7 +440,7 @@ func (d *Server) Serve() error {
 
 //NewConn creates a new SrvConn and returns a reference to it.
 func (d *Server) NewConn(conn *net.UnixConn) *SrvConn {
-	return &SrvConn{conn, d, 0, nil, nil, nil}
+	return &SrvConn{conn, d, nil, 0, nil, nil, nil}
 }
 
 //getNode is an internal helper function that will walk a tree and return the node for a given path
