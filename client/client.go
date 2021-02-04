@@ -261,8 +261,15 @@ func (c *Client) Run(path string, env []string, tty bool, input io.Reader, outpu
 		if err != nil {
 			return 1, err
 		}
-		argv := []string{xpandedpath, termpath, envs, ttystr}
-		i, err = c.intRequest(rpc.FnRun, argv)
+		term, err := os.OpenFile(termpath, os.O_RDWR|syscall.O_NOCTTY, 0)
+		if err != nil {
+			return 1, err
+		}
+
+		conn := &passFdConn{c.conn.(*net.UnixConn), term, false}
+		argv := []string{xpandedpath, envs, ttystr}
+		i, err = c.intRequestOnConn(conn, rpc.FnRun, argv)
+		term.Close()
 		if err != nil {
 			return 1, err
 		}

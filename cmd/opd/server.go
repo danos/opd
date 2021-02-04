@@ -254,10 +254,19 @@ func (conn *SrvConn) Close() error {
 }
 
 func (conn *SrvConn) Read(p []byte) (int, error) {
-	oob := make([]byte, syscall.CmsgSpace(strconv.IntSize/8))
+
+	// ReadMsgUnix() reads and discards a single byte from the connection
+	// if len(p) == 0 and len(oob) > 0. We don't want that.
+	// So in this case, or when we already have a terminal descriptor,
+	// just delegate to the underlying Read().
+	if len(p) == 0 || conn.term != nil {
+		return conn.UnixConn.Read(p)
+	}
+
+	oob := make([]byte, syscall.CmsgSpace(4))
 
 	n, oobn, _, _, err := conn.ReadMsgUnix(p, oob)
-	if err != nil || oobn == 0 || conn.term != nil {
+	if err != nil || oobn == 0 {
 		return n, err
 	}
 
@@ -356,7 +365,7 @@ func (conn *SrvConn) Handle() {
 
 		switch req.Op {
 		case rpc.FnRun:
-			result, err = conn.Srv.Run(path, req.Args, cred)
+			result, err = conn.Srv.Run(conn.term, path, req.Args, cred)
 		case rpc.FnComplete:
 			result, err = conn.Srv.Complete(path, cred)
 		case rpc.FnHelp:
@@ -544,17 +553,20 @@ func (d *Server) yangAuthoriser(cred *ucred) yang.Authoriser {
 
 //Run starts the process specified by the 'run' field in the template of the node at the given path.
 //The pid of this process is returned to the client so that it may start up a cmdclient and attach to the remote pty.
-func (d *Server) Run(path tree.Path, args []string, cred *ucred) (reply int, err error) {
+func (d *Server) Run(term *os.File, path tree.Path, args []string, cred *ucred) (reply int, err error) {
 	var com string
 	var setuid bool
 	var auditstr string
 
-	if len(args) < 4 {
+	if len(args) != 3 {
 		return -1, fmt.Errorf("Invalid number of arguments: %d\n", len(args))
 	}
-	termpath := args[1]
-	clientenv := args[2]
-	ttystr := args[3]
+	clientenv := args[1]
+	ttystr := args[2]
+
+	if term == nil {
+		return -1, fmt.Errorf("No terminal descriptor")
+	}
 
 	env := strings.Split(clientenv, ":")
 	for i, v := range env {
@@ -641,13 +653,13 @@ func (d *Server) Run(path tree.Path, args []string, cred *ucred) (reply int, err
 	argv = append(argv, path...)
 
 	var cmd = &Cmd{
-		Path:     "/opt/vyatta/sbin/lu",
-		Args:     argv,
-		Env:      cenv,
-		Uid:      cred.Uid,
-		Setuid:   setuid,
-		Istty:    istty,
-		Termpath: termpath,
+		Path:   "/opt/vyatta/sbin/lu",
+		Args:   argv,
+		Env:    cenv,
+		Uid:    cred.Uid,
+		Setuid: setuid,
+		Istty:  istty,
+		Term:   term,
 	}
 
 	if a, _ := d.getAccounter(path, cred); a != nil {

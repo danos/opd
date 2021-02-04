@@ -1,3 +1,14 @@
+opd (1.15) UNRELEASED; urgency=medium
+
+  * client: add doRpcOnConn()
+  * client: add intRequestOnConn()
+  * client: add passFdConn UnixConn wrapper
+  * opd: allow setting open terminal descriptor on Cmd
+  * opd: Update SrvConn to read SCM_RIGHTS message
+  * Pass PTY by descriptor from opc to opd
+
+ -- Duncan Eastoe <duncan.eastoe@att.com>  Fri, 05 Feb 2021 12:13:27 +0000
+
 opd (1.14) unstable; urgency=medium
 
   [ Duncan Eastoe ]
