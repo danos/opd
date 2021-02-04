@@ -101,13 +101,13 @@ func (c *Client) stringRequest(fn rpc.Fn, argv []string) (string, error) {
 }
 
 //Send the request and get an int or error
-func (c *Client) intRequest(fn rpc.Fn, argv []string) (int, error) {
+func (c *Client) intRequestOnConn(conn net.Conn, fn rpc.Fn, argv []string) (int, error) {
 	var req rpc.Request
 	var resp *rpc.Response
 	var err error
 
 	req = rpc.Request{Op: fn, Args: argv}
-	resp, err = c.doRpc(&req)
+	resp, err = c.doRpcOnConn(conn, &req)
 
 	if err != nil {
 		return -1, err
@@ -118,6 +118,10 @@ func (c *Client) intRequest(fn rpc.Fn, argv []string) (int, error) {
 	}
 
 	return -1, fmt.Errorf("invalid return type")
+}
+
+func (c *Client) intRequest(fn rpc.Fn, argv []string) (int, error) {
+	return c.intRequestOnConn(c.conn, fn, argv)
 }
 
 //Send the request and get an []string or error
