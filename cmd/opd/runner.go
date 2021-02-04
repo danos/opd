@@ -1,4 +1,4 @@
-// Copyright (c) 2019, AT&T Intellectual Property. All rights reserved.
+// Copyright (c) 2019, 2021, AT&T Intellectual Property. All rights reserved.
 //
 // Copyright (c) 2013-2017 by Brocade Communications Systems, Inc.
 // All rights reserved.
@@ -25,6 +25,7 @@ type Cmd struct {
 	Setuid   bool
 	Istty    bool
 	Termpath string
+	Term     *os.File
 	Stdin    io.ReadCloser
 	Stdout   io.WriteCloser
 	Stderr   io.WriteCloser
@@ -71,12 +72,17 @@ func Run(cmd *Cmd) (int, error) {
 	var term *os.File
 	var rc int = 1
 
-	term, err = os.OpenFile(cmd.Termpath, os.O_RDWR|syscall.O_NOCTTY, 0)
-	if err != nil {
-		return rc, err
+	if cmd.Term != nil {
+		term = cmd.Term
+	} else if cmd.Termpath != "" {
+		term, err = os.OpenFile(cmd.Termpath, os.O_RDWR|syscall.O_NOCTTY, 0)
+		if err != nil {
+			return rc, err
+		}
+		defer term.Close()
+	} else {
+		return rc, fmt.Errorf("No terminal specified by descriptor or path")
 	}
-
-	defer term.Close()
 
 	cmd.Stdin = term
 	cmd.Stdout = term
