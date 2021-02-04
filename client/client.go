@@ -14,14 +14,34 @@ import (
 	"io"
 	"net"
 	"net/url"
+	"os"
 	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 
 	"github.com/danos/opd/rpc"
 	"github.com/danos/utils/pathutil"
 )
+
+type passFdConn struct {
+	*net.UnixConn
+	file   *os.File
+	passed bool
+}
+
+func (c *passFdConn) Write(p []byte) (int, error) {
+	if c.passed {
+		return c.UnixConn.Write(p)
+	}
+
+	n, _, err := c.UnixConn.WriteMsgUnix(
+		p, syscall.UnixRights(int(c.file.Fd())), nil)
+	c.passed = err == nil
+
+	return n, err
+}
 
 //Client represents an RPC client calls against the client stub functions are
 //sent to the server to be fulfilled and a response of the appropriate type
