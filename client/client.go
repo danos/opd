@@ -1,4 +1,4 @@
-// Copyright (c) 2019 AT&T Intellectual Property.
+// Copyright (c) 2019, 2021 AT&T Intellectual Property.
 // All rights reserved.
 //
 // Copyright (c) 2013-2017 by Brocade Communications Systems, Inc.
@@ -38,7 +38,7 @@ func (c *Client) Close() {
 }
 
 //Perform RPC request and response
-func (c *Client) doRpc(req *rpc.Request) (*rpc.Response, error) {
+func (c *Client) doRpcOnConn(conn net.Conn, req *rpc.Request) (*rpc.Response, error) {
 	var resp *rpc.Response = new(rpc.Response)
 	var err error
 
@@ -46,8 +46,8 @@ func (c *Client) doRpc(req *rpc.Request) (*rpc.Response, error) {
 	req.Id = c.id
 
 	/*setup socket handlers*/
-	enc := json.NewEncoder(c.conn)
-	dec := json.NewDecoder(c.conn)
+	enc := json.NewEncoder(conn)
+	dec := json.NewDecoder(conn)
 
 	if c.debug {
 		fmt.Printf("%#v\n", req)
@@ -74,6 +74,10 @@ func (c *Client) doRpc(req *rpc.Request) (*rpc.Response, error) {
 	}
 
 	return resp, nil
+}
+
+func (c *Client) doRpc(req *rpc.Request) (*rpc.Response, error) {
+	return c.doRpcOnConn(c.conn, req)
 }
 
 //Send the request and get a string or error
