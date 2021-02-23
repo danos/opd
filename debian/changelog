@@ -1,5 +1,6 @@
-opd (1.15) UNRELEASED; urgency=medium
+opd (1.15) unstable; urgency=medium
 
+  [ Duncan Eastoe ]
   * client: add doRpcOnConn()
   * client: add intRequestOnConn()
   * client: add passFdConn UnixConn wrapper
@@ -7,7 +8,7 @@ opd (1.15) UNRELEASED; urgency=medium
   * opd: Update SrvConn to read SCM_RIGHTS message
   * Pass PTY by descriptor from opc to opd
 
- -- Duncan Eastoe <duncan.eastoe@att.com>  Fri, 05 Feb 2021 12:13:27 +0000
+ -- William Ivory <william.ivory@intl.att.com>  Tue, 23 Feb 2021 13:50:20 +0000
 
 opd (1.14) unstable; urgency=medium
 
