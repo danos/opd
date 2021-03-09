@@ -7,9 +7,10 @@ package main
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/danos/utils/os/group"
 	"github.com/danos/utils/pathutil"
-	"testing"
 
 	"github.com/danos/op/tmpl/tree"
 
@@ -62,7 +63,7 @@ func newDummyAAA() (*aaa.AAA, *aaa.AAAPluginConfig, *DummyPlugin) {
 	aaaif.Protocols = make(map[string]*aaa.AAAProtocol)
 
 	protocol.Plugin = &plugin
-	protocol.Cfg = aaa.AAAPluginConfig{false, false, name}
+	protocol.Cfg = aaa.AAAPluginConfig{CmdAuthor: false, Name: name}
 
 	aaaif.Protocols[name] = &protocol
 
