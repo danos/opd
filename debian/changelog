@@ -1,3 +1,10 @@
+opd (1.16) unstable; urgency=medium
+
+  [ William Ivory ]
+  * Fix bullseye build
+
+ -- Paul Carson <paul.carson@intl.att.com>  Thu, 01 Jul 2021 14:07:58 +0100
+
 opd (1.15) unstable; urgency=medium
 
   [ Duncan Eastoe ]
